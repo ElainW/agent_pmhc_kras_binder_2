@@ -21,3 +21,31 @@ reusable pipeline code.
   (8I5E, peptide VVGAGGVGK) job per candidate, binder chain folded with no MSA, batched to the
   AF3 Server's 30-job/day quota. Drop the resulting structures back under
   `designs/<round>/af3_jobs/<batch>/results/` for downstream scoring.
+
+## Environment notes (this Vast.ai instance)
+
+- **CPU affinity:** the container's pids cgroup caps at 1024 (`/sys/fs/cgroup/pids.max`)
+  but `nproc` reports 256 visible cores. JAX/TensorFlow size their CPU threadpools to
+  the visible core count and blow past the pids cap, crashing with
+  `pthread_create() failed (11)`. Always wrap jax/tensorflow processes (AF2
+  initial-guess, pMHC-fold) with `taskset -c 0-15` (or similar) to cap visible cores.
+- **AF2 weights:** `dl_binder_design/af2_initial_guess/predict.py` expects
+  `model_weights/params/params_model_1_ptm.npz` (not present in the base image — download
+  from `https://storage.googleapis.com/alphafold/alphafold_params_2022-12-06.tar`,
+  extract just `params_model_1_ptm.npz`, ~5.5GB tar/~370MB needed file).
+- **ProteinMPNN dependency:** `dl_binder_design/mpnn_fr/dl_interface_design.py` expects a
+  `ProteinMPNN` checkout inside `mpnn_fr/` — symlinked to the project's own
+  `/workspace/ProteinMPNN` rather than re-cloning.
+- **`dl_binder_design` venv was missing `torch`** (needed by `dl_interface_design.py`
+  alongside `pyrosetta`) — installed `torch` (cu128 build) into that venv; coexists fine
+  with its existing `jax`/`pyrosetta`.
+- **Blackwell (RTX 5090, sm_120) + vendored AlphaFold/jax compatibility:** the
+  `af2_binder_design` venv's original `jax==0.4.28` ships a `ptxas` that can't target
+  sm_120 (`cannot be compiled to future architecture`). Upgraded to latest `jax[cuda12]`
+  (0.10.2) to get Blackwell kernel support, which in turn requires patching the vendored
+  2022-era AlphaFold code for jax API removals (`jax.tree_map` family, `jax.util.wraps`,
+  `jax.lib.xla_bridge`, `jnp.clip(a_min=/a_max=)`). See
+  `patches/dl_binder_design_blackwell_jax_compat.patch` (applied directly to the
+  `/workspace/dl_binder_design` checkout) — re-apply with
+  `git -C /workspace/dl_binder_design apply patches/dl_binder_design_blackwell_jax_compat.patch`
+  if that checkout is ever reset.

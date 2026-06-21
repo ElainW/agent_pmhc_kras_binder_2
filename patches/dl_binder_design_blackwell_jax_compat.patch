@@ -1,0 +1,63 @@
+diff --git a/af2_initial_guess/alphafold/model/modules.py b/af2_initial_guess/alphafold/model/modules.py
+index b20e0f9..303aafe 100644
+--- a/af2_initial_guess/alphafold/model/modules.py
++++ b/af2_initial_guess/alphafold/model/modules.py
+@@ -1757,8 +1757,8 @@ class EmbeddingsAndEvoformer(hk.Module):
+       rel_pos = jax.nn.one_hot(
+           jnp.clip(
+               offset + c.max_relative_feature,
+-              a_min=0,
+-              a_max=2 * c.max_relative_feature),
++              min=0,
++              max=2 * c.max_relative_feature),
+           2 * c.max_relative_feature + 1)
+       pair_activations += common_modules.Linear(
+           c.pair_channel, name='pair_activiations')(
+diff --git a/af2_initial_guess/predict.py b/af2_initial_guess/predict.py
+index e682a45..63c105b 100755
+--- a/af2_initial_guess/predict.py
++++ b/af2_initial_guess/predict.py
+@@ -12,7 +12,33 @@ import uuid
+ import jax
+ import jax.numpy as jnp
+ 
+-from jax.lib import xla_bridge
++# Compatibility shim: this vendored AlphaFold/jax stack predates jax's removal of these
++# top-level tree_util aliases; re-add them so the unmodified vendored code keeps working
++# under the newer jax/jaxlib required for Blackwell (sm_100+) GPU support.
++if not hasattr(jax, "tree_map"):
++    jax.tree_map = jax.tree_util.tree_map
++if not hasattr(jax, "tree_multimap"):
++    jax.tree_multimap = jax.tree_util.tree_map
++if not hasattr(jax, "tree_flatten"):
++    jax.tree_flatten = jax.tree_util.tree_flatten
++if not hasattr(jax, "tree_unflatten"):
++    jax.tree_unflatten = jax.tree_util.tree_unflatten
++if not hasattr(jax, "tree_leaves"):
++    jax.tree_leaves = jax.tree_util.tree_leaves
++if not hasattr(jax, "tree_structure"):
++    jax.tree_structure = jax.tree_util.tree_structure
++if not hasattr(jax, "util"):
++    import functools as _functools
++    import types as _types
++
++    def _jax_util_wraps(fun, namestr=None, docstr=None, **unused):
++        def decorator(f):
++            return _functools.wraps(fun)(f)
++        return decorator
++
++    _jax_util_mod = _types.ModuleType("jax.util")
++    _jax_util_mod.wraps = _jax_util_wraps
++    jax.util = _jax_util_mod
+ 
+ from alphafold.common import residue_constants
+ from alphafold.common import protein
+@@ -534,7 +560,7 @@ class StructManager():
+ ####### Main #######
+ ####################
+ 
+-device = xla_bridge.get_backend().platform
++device = jax.default_backend()
+ if device == 'gpu':
+     print('/' * 60)
+     print('/' * 60)
