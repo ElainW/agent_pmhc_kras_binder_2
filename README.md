@@ -10,11 +10,25 @@ reusable pipeline code.
 
 ## Scripts
 
-- `scripts/make_rfdiff_target.py` — builds the RFdiffusion docking target from `input/9UV8.pdb`:
+Numbered scripts mirror the order they're run in; each is also the audit trail for the
+corresponding commands actually executed during the campaign.
+
+- `scripts/00_setup_dl_binder_design_env.sh` — one-time environment fixes for
+  `dl_binder_design` (see "Environment notes" below); idempotent, safe to re-run.
+- `scripts/01_make_rfdiff_target.py` — builds the RFdiffusion docking target from `input/9UV8.pdb`:
   HLA-A*11:01 heavy chain residues 1-180 + KRAS(G12D) peptide residues 1-9, renumbered
   continuously (1-189) and relabeled to chain B (matches `contact_filter` convention: peptide
   = residues 181-189, p5/Asp(G12D) = residue 185). Drops beta-2-microglobulin (not part of the
   peptide-binding groove).
+- `scripts/02_run_rfdiffusion.sh <output_prefix> <num_designs>` — hotspot-conditioned binder
+  backbone generation (hotspots B184-186 / peptide p4-p6, centered on Asp(p5)=B185; see
+  `docs/03_design_log.md` round-1 entries for the rationale).
+- `scripts/03_run_proteinmpnn_fastrelax.sh <pdbdir> <outpdbdir>` — ProteinMPNN sequence design
+  + 1 FastRelax cycle on RFdiffusion backbones (binder = chain A, redesigned; target = chain B,
+  fixed).
+- `scripts/04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer]` — AF2 initial-guess
+  filter: complex mode scores `pae_interaction`/`binder_rmsd`, monomer mode scores binder-alone
+  `pLDDT`.
 - `scripts/prepare_af3_jobs.py` — given a CSV of candidate binder sequences that passed the
   AF2 + ProteinMPNN-specificity filters, generates AlphaFold Server (AF3) batch-upload JSON
   files for manual submission: one on-target (9UV8, peptide VVGADGVGK) and one off-target
