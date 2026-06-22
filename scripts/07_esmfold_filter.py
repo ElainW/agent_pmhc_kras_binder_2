@@ -78,7 +78,9 @@ def main():
         t0 = time.time()
         with torch.no_grad():
             out = model(**inputs)
-        plddt = out["plddt"][0, ..., 1].mean().item() if out["plddt"].dim() > 2 else out["plddt"].mean().item()
+        # plddt is a categorical-LDDT mixture mean on a 0-1 scale (atom37 index 1 = CA);
+        # rescale to AF2's familiar 0-100 pLDDT convention used elsewhere in this pipeline.
+        plddt = 100 * (out["plddt"][0, ..., 1].mean().item() if out["plddt"].dim() > 2 else out["plddt"].mean().item())
         dt = time.time() - t0
         rows.append({"tag": tag, "backbone": backbone_tag(tag, args.mpnn_suffix), "plddt": plddt, "len": len(seq)})
         print(f"{tag}\tplddt={plddt:.1f}\tlen={len(seq)}\t{dt:.1f}s")
