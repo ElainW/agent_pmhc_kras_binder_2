@@ -6,12 +6,13 @@
 # blows past the cgroup cap and crashes with pthread_create() failed (11). See
 # pmhc_design/README.md "Environment notes".
 #
-# Usage: 04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer]
+# Usage: 04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer] [runlist]
 set -euo pipefail
 
-PDBDIR="${1:?usage: 04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer]}"
-OUTDIR="${2:?usage: 04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer]}"
+PDBDIR="${1:?usage: 04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer] [runlist]}"
+OUTDIR="${2:?usage: 04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer] [runlist]}"
 MODE="${3:-complex}"
+RUNLIST="${4:-}"
 
 mkdir -p "$OUTDIR"
 cd /workspace/dl_binder_design
@@ -19,6 +20,9 @@ cd /workspace/dl_binder_design
 EXTRA_ARGS=()
 if [ "$MODE" = "monomer" ]; then
     EXTRA_ARGS+=(-force_monomer)
+fi
+if [ -n "$RUNLIST" ]; then
+    EXTRA_ARGS+=(-runlist "$RUNLIST")
 fi
 
 taskset -c 0-15 /venv/af2_binder_design/bin/python af2_initial_guess/predict.py \
