@@ -1,7 +1,0 @@
-- inference.output_prefix=/workspace/designs/round1/backbones/r1b
-- inference.input_pdb=/workspace/designs/prep/9UV8_target_chainB.pdb
-- contigmap.contigs=[B1-189/0 70-100]
-- ppi.hotspot_res=[B184,B185,B186]
-- inference.num_designs=1000
-- denoiser.noise_scale_ca=0
-- denoiser.noise_scale_frame=0
