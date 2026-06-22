@@ -23,12 +23,29 @@ corresponding commands actually executed during the campaign.
 - `scripts/02_run_rfdiffusion.sh <output_prefix> <num_designs>` — hotspot-conditioned binder
   backbone generation (hotspots B184-186 / peptide p4-p6, centered on Asp(p5)=B185; see
   `docs/03_design_log.md` round-1 entries for the rationale).
-- `scripts/03_run_proteinmpnn_fastrelax.sh <pdbdir> <outpdbdir>` — ProteinMPNN sequence design
-  + 1 FastRelax cycle on RFdiffusion backbones (binder = chain A, redesigned; target = chain B,
-  fixed).
-- `scripts/04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer]` — AF2 initial-guess
-  filter: complex mode scores `pae_interaction`/`binder_rmsd`, monomer mode scores binder-alone
-  `pLDDT`.
+- `scripts/03_run_proteinmpnn_fastrelax.sh <pdbdir> <outpdbdir> [runlist]` — ProteinMPNN sequence
+  design + 1 FastRelax cycle, 1 sequence/backbone (binder = chain A, redesigned; target = chain B,
+  fixed). Used for the r1 (300-backbone) pilot batch.
+- `scripts/03b_run_proteinmpnn_multiseq.sh <pdbdir> <outpdbdir> [num_seqs_per_struct] [runlist]` —
+  ProteinMPNN **without** FastRelax, N sequences/backbone (default 8, paper's supplement range is
+  4-32 — see "MPNN multiplicity gap" in `docs/03_design_log.md`). `dl_interface_design.py`
+  disallows `seqs_per_struct>1` with FastRelax on, and FastRelax wasn't found to matter much
+  in silico per RFdiffusion's own README, so this trades it for the paper's intended per-backbone
+  sampling depth. Follow with `07_esmfold_filter.py` to triage to 1 sequence/backbone before AF2.
+- `scripts/04_run_af2_initial_guess.sh <pdbdir> <outdir> [complex|monomer] [runlist]` — AF2
+  initial-guess filter: complex mode scores `pae_interaction`/`binder_rmsd`, monomer mode scores
+  binder-alone `pLDDT`.
+- `scripts/05_contact_filter.py --pdbdir <dir> --out_csv <path>` — cheap PyRosetta
+  `ContactMolecularSurface` pre-filter on raw RFdiffusion backbones (binder vs. peptide
+  181B-189B, and vs. Asp/p5=185B alone) — ~1-2s/design vs AF2's ~200s. Run before MPNN to
+  avoid spending MPNN+AF2 compute on backbones that don't reach the peptide.
+- `scripts/06_select_contact_pass.py --csv <05 output> --out_runlist <path>` — turns the
+  contact-filter scores into an AF2/MPNN `-runlist` of passing backbone tags.
+- `scripts/07_esmfold_filter.py --pdbdir <mpnn_multiseq_out> --out_csv <path> --out_runlist <path>` —
+  folds every ProteinMPNN sequence (binder chain alone) with ESMFold (`facebook/esmfold_v1`,
+  HuggingFace `transformers`, no MSA) and keeps only the best-pLDDT sequence per backbone,
+  written as an AF2-complex `-runlist`. This is what makes the N-sequences/backbone multiplicity
+  affordable — AF2-complex call volume stays at ~1/backbone regardless of N.
 - `scripts/prepare_af3_jobs.py` — given a CSV of candidate binder sequences that passed the
   AF2 + ProteinMPNN-specificity filters, generates AlphaFold Server (AF3) batch-upload JSON
   files for manual submission: one on-target (9UV8, peptide VVGADGVGK) and one off-target
@@ -63,3 +80,11 @@ corresponding commands actually executed during the campaign.
   `/workspace/dl_binder_design` checkout) — re-apply with
   `git -C /workspace/dl_binder_design apply patches/dl_binder_design_blackwell_jax_compat.patch`
   if that checkout is ever reset.
+- **ESMFold** (`07_esmfold_filter.py`) installed via `pip install transformers accelerate` into
+  the `proteinmpnn` venv (already had Blackwell-compatible `torch`) — uses
+  `transformers.models.esm.modeling_esmfold.EsmForProteinFolding` (`facebook/esmfold_v1`), not
+  Meta's original `fair-esm`+`openfold` (avoids a painful custom-CUDA-kernel build). Needs
+  `taskset -c 0-15` for the same pids-cgroup reason as AF2. HF token cached at
+  `/workspace/.hf_home/token` (per-instance `HF_HOME`, not in any repo) for faster downloads.
+  CPU inference works but is impractically slow (~minutes/sequence) — GPU is the point of using
+  ESMFold here at all.
