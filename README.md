@@ -46,6 +46,18 @@ corresponding commands actually executed during the campaign.
   HuggingFace `transformers`, no MSA) and keeps only the best-pLDDT sequence per backbone,
   written as an AF2-complex `-runlist`. This is what makes the N-sequences/backbone multiplicity
   affordable — AF2-complex call volume stays at ~1/backbone regardless of N.
+
+  Note: this only checks monomer pLDDT, not RMSD to the RFdiffusion-designed backbone
+  (unlike AF2's own `binder_rmsd<2Å` gate) — a real gap flagged but not yet closed; would
+  need to also save ESMFold's predicted coordinates (currently only the pLDDT scalar is
+  kept) and align them back to the design.
+- `scripts/08_mpnn_specificity.py --pdbdir <AF2-passing complex pdbs> --out_csv <path>` —
+  local ProteinMPNN log-probability specificity screen (supplement's *other*, AF3-independent
+  specificity method: `conditional_probs_only` mode gives the full 21-AA distribution at the
+  peptide p5 position in one pass, conditioned on the bound binder as fixed context; no
+  off-target structure needed). `mpnn_spec_score = log_p(on-target aa) - log_p(Ala)` — this is
+  the primary, always-available specificity gate; AF3 is reserved for final structural
+  confirmation of survivors, not as the specificity bottleneck (see `docs/03_design_log.md`).
 - `scripts/prepare_af3_jobs.py` — given a CSV of candidate binder sequences that passed the
   AF2 + ProteinMPNN-specificity filters, generates AlphaFold Server (AF3) batch-upload JSON
   files for manual submission: one on-target (9UV8, peptide VVGADGVGK) and one off-target
