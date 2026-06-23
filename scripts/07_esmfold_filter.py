@@ -24,6 +24,7 @@ import os
 import re
 import time
 
+import numpy as np
 import torch
 from transformers import AutoTokenizer
 from transformers.models.esm.modeling_esmfold import EsmForProteinFolding
@@ -35,8 +36,9 @@ AA3to1 = {
 }
 
 
-def binder_chain_a_sequence(pdb_path):
+def binder_chain_a(pdb_path):
     seq = []
+    coords = []
     seen = set()
     for line in open(pdb_path):
         if line.startswith("ATOM") and line[21] == "A" and line[12:16].strip() == "CA":
@@ -45,7 +47,21 @@ def binder_chain_a_sequence(pdb_path):
                 continue
             seen.add(resnum)
             seq.append(AA3to1.get(line[17:20].strip(), "X"))
-    return "".join(seq)
+            coords.append((float(line[30:38]), float(line[38:46]), float(line[46:54])))
+    return "".join(seq), np.array(coords)
+
+
+def kabsch_rmsd(mobile, ref):
+    """Superpose `mobile` onto `ref` (both Nx3) and return post-alignment RMSD."""
+    mobile_c = mobile - mobile.mean(axis=0)
+    ref_c = ref - ref.mean(axis=0)
+    cov = mobile_c.T @ ref_c
+    U, S, Vt = np.linalg.svd(cov)
+    d = np.sign(np.linalg.det(Vt.T @ U.T))
+    correction = np.diag([1, 1, d])
+    rot = Vt.T @ correction @ U.T
+    aligned = mobile_c @ rot.T
+    return float(np.sqrt(((aligned - ref_c) ** 2).sum(axis=1).mean()))
 
 
 def backbone_tag(mpnn_tag, mpnn_suffix):
@@ -59,6 +75,7 @@ def main():
     ap.add_argument("--out_runlist", required=True)
     ap.add_argument("--mpnn_suffix", default="_dldesign")
     ap.add_argument("--min_plddt", type=float, default=70.0, help="below this, drop the backbone entirely")
+    ap.add_argument("--max_rmsd", type=float, default=2.0, help="max CA RMSD (A) to the RFdiffusion design")
     args = ap.parse_args()
 
     tok = AutoTokenizer.from_pretrained("facebook/esmfold_v1")
@@ -69,7 +86,7 @@ def main():
     pdbs = sorted(glob.glob(os.path.join(args.pdbdir, "*.pdb")))
     for pdb_path in pdbs:
         tag = os.path.basename(pdb_path)[:-4]
-        seq = binder_chain_a_sequence(pdb_path)
+        seq, design_ca = binder_chain_a(pdb_path)
         if not seq:
             print(f"SKIP {tag}: no chain A found")
             continue
@@ -81,30 +98,38 @@ def main():
         # plddt is a categorical-LDDT mixture mean on a 0-1 scale (atom37 index 1 = CA);
         # rescale to AF2's familiar 0-100 pLDDT convention used elsewhere in this pipeline.
         plddt = 100 * (out["plddt"][0, ..., 1].mean().item() if out["plddt"].dim() > 2 else out["plddt"].mean().item())
+        # positions is atom14 format (N=0,CA=1,C=2,O=3,...), shape (n_refine, 1, L, 14, 3);
+        # take the final refinement step's CA coordinates and superpose onto the design.
+        pred_ca = out["positions"][-1, 0, :, 1, :].detach().cpu().numpy()
+        ca_rmsd = kabsch_rmsd(pred_ca, design_ca) if len(pred_ca) == len(design_ca) else float("nan")
         dt = time.time() - t0
-        rows.append({"tag": tag, "backbone": backbone_tag(tag, args.mpnn_suffix), "plddt": plddt, "len": len(seq)})
-        print(f"{tag}\tplddt={plddt:.1f}\tlen={len(seq)}\t{dt:.1f}s")
+        rows.append({
+            "tag": tag, "backbone": backbone_tag(tag, args.mpnn_suffix),
+            "plddt": plddt, "ca_rmsd": ca_rmsd, "len": len(seq),
+        })
+        print(f"{tag}\tplddt={plddt:.1f}\tca_rmsd={ca_rmsd:.2f}\tlen={len(seq)}\t{dt:.1f}s")
 
     with open(args.out_csv, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["tag", "backbone", "plddt", "len"])
+        writer = csv.DictWriter(f, fieldnames=["tag", "backbone", "plddt", "ca_rmsd", "len"])
         writer.writeheader()
         writer.writerows(rows)
 
+    # among sequences passing both gates, keep the best-pLDDT one per backbone
+    passing = [r for r in rows if r["plddt"] >= args.min_plddt and r["ca_rmsd"] <= args.max_rmsd]
     best_per_backbone = {}
-    for r in rows:
+    for r in passing:
         b = r["backbone"]
         if b not in best_per_backbone or r["plddt"] > best_per_backbone[b]["plddt"]:
             best_per_backbone[b] = r
 
     with open(args.out_runlist, "w") as f:
-        for b, r in best_per_backbone.items():
-            if r["plddt"] >= args.min_plddt:
-                f.write(r["tag"] + "\n")
+        for r in best_per_backbone.values():
+            f.write(r["tag"] + "\n")
 
-    n_pass = sum(1 for r in best_per_backbone.values() if r["plddt"] >= args.min_plddt)
-    print(f"{len(rows)} sequences across {len(best_per_backbone)} backbones; "
-          f"{n_pass}/{len(best_per_backbone)} backbones have a best-sequence plddt>={args.min_plddt}; "
-          f"wrote {args.out_runlist}")
+    n_backbones = len({r["backbone"] for r in rows})
+    print(f"{len(rows)} sequences across {n_backbones} backbones; "
+          f"{len(best_per_backbone)}/{n_backbones} backbones have a sequence with "
+          f"plddt>={args.min_plddt} and ca_rmsd<={args.max_rmsd}; wrote {args.out_runlist}")
 
 
 if __name__ == "__main__":
