@@ -11,6 +11,9 @@ Usage:
     python 02b_run_partial_diffusion.py --seeds_csv <csv with 'tag' column> \
         --backbone_dir <dir of seed pdbs> --out_prefix <prefix> \
         --variants_per_seed 10 --partial_T 18 --hotspot_res B184,B186,B187
+
+If seeds_csv has a 'partial_T' column, it overrides --partial_T per-seed (e.g. to scale
+partial_T by each seed's round-1 AF2 quality -- better seeds get a lighter touch).
 """
 import argparse
 import csv
@@ -52,6 +55,7 @@ def main():
         binder_len = chain_a_length(pdb_path)
         contig = f"[B1-189/0 {binder_len}-{binder_len}]"
         out_prefix = f"{args.out_prefix}_{tag}"
+        partial_T = int(row["partial_T"]) if row.get("partial_T") else args.partial_T
 
         cmd = [
             "/venv/SE3nv/bin/python", "/workspace/RFdiffusion/scripts/run_inference.py",
@@ -61,9 +65,9 @@ def main():
             f"contigmap.contigs={contig}",
             f"ppi.hotspot_res=[{args.hotspot_res}]",
             f"inference.num_designs={args.variants_per_seed}",
-            f"diffuser.partial_T={args.partial_T}",
+            f"diffuser.partial_T={partial_T}",
         ]
-        print(f"=== seed {tag} (binder_len={binder_len}) ===")
+        print(f"=== seed {tag} (binder_len={binder_len}, partial_T={partial_T}) ===")
         subprocess.run(cmd, check=True)
 
 
