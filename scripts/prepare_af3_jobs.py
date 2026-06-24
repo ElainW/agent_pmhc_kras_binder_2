@@ -9,9 +9,17 @@ HLA heavy chain and b2m sequences are held identical between on/off jobs (docs/0
 "Sequences (9UV8 Construct)") so the peptide identity is the only variable -- isolating the
 G12D-vs-WT specificity test.
 
-The binder chain is folded with no MSA (single-sequence unpairedMsa/pairedMsa, no templates) per
-the validated-design convention observed in paper_output/af3_nomsa/*/*_data.json. Target chains are
-left MSA-free for input (AF3 Server computes MSA/templates server-side at submission).
+Schema corrected 2026-06-24 against a real AF3 Server submission example the user provided
+(paper_output/af3_nomsa/binder_pMHC_full_noMSA_MHC.json): the actual input dialect is
+"alphafoldserver" v1 with "proteinChain" (not "protein"/"alphafold3" v2, which is the
+*output* data.json schema -- an earlier version of this script used the wrong one).
+
+The binder chain is folded with no MSA (single-sequence unpairedMsa) per the validated-design
+convention. The MHC heavy chain is deliberately given NO unpairedMsa field (server fetches a
+real MSA for it) -- per user direction, this avoids false-negative binding predictions that a
+no-MSA MHC chain can produce (the reference example strips MSA from MHC too; we don't). The
+peptide uses useStructureTemplate:False (too short for MSA to be meaningful), matching the
+reference. Beta-2-microglobulin is no-MSA like the reference example.
 
 Jobs are grouped into batches of <= --batch_size (default 30, matching the AF3 Server daily quota)
 for manual upload.
@@ -37,35 +45,30 @@ PEPTIDE_ON = "VVGADGVGK"   # 9UV8 KRAS G12D (Asp at p5)
 PEPTIDE_OFF = "VVGAGGVGK"  # 8I5E KRAS WT (Gly at p5)
 
 
-def no_msa_protein(chain_id, sequence):
-    return {
-        "protein": {
-            "id": chain_id,
-            "sequence": sequence,
-            "modifications": [],
-            "unpairedMsa": f">Original query\n{sequence}\n",
-            "pairedMsa": f">Original query\n{sequence}\n",
-            "templates": [],
-        }
-    }
+def no_msa_chain(sequence):
+    return {"proteinChain": {"sequence": sequence, "count": 1, "unpairedMsa": f">query\n{sequence}"}}
 
 
-def target_protein(chain_id, sequence):
-    # No MSA/templates supplied on input -- AF3 Server fetches its own at submission time.
-    return {"protein": {"id": chain_id, "sequence": sequence}}
+def real_msa_chain(sequence):
+    # No unpairedMsa field at all -- AF3 Server fetches a real MSA for this chain.
+    return {"proteinChain": {"sequence": sequence, "count": 1}}
+
+
+def no_template_chain(sequence):
+    return {"proteinChain": {"sequence": sequence, "count": 1, "useStructureTemplate": False}}
 
 
 def build_job(name, binder_seq, peptide_seq, seeds):
     return {
-        "dialect": "alphafold3",
-        "version": 2,
+        "dialect": "alphafoldserver",
+        "version": 1,
         "name": name,
         "modelSeeds": seeds,
         "sequences": [
-            no_msa_protein("A", binder_seq),
-            target_protein("B", HLA_A1101_HEAVY),
-            target_protein("C", peptide_seq),
-            target_protein("D", B2M),
+            no_msa_chain(binder_seq),       # binder: no MSA
+            real_msa_chain(HLA_A1101_HEAVY),  # MHC: real MSA (avoids false-negative binding)
+            no_template_chain(peptide_seq),  # peptide: too short for MSA
+            no_msa_chain(B2M),
         ],
     }
 
