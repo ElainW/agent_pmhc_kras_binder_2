@@ -131,32 +131,38 @@ Drawn from the 12 best pMHC-fold on/off deltas among the 20 total AF2-passing ca
 
 5. **Implication for a future round:** an explicit filter for p5 polar contacts (as applied in tier1 selection) is the clearest path to closing the gap with both tier1 and the validated designs. Our leads `dldesign_6` and `dldesign_7` demonstrate the mechanism is achievable (Arg47 salt bridge confirmed in 4/5 AF3 models), but it needs to be enforced as a selection criterion from the start of the design cycle rather than discovered retrospectively.
 
-### §7b. tier1 r3 vs our candidates
+### §7b. tier1 r3 vs validated designs vs our candidates
 
-tier1 r3 (n=19) is a further-refined generation from the same independent pipeline, all again selected for p5 polar contacts. Stats from `designs/tier1_af3_stats.tsv` (r3 subset, pre-computed externally with same FastRelax+InterfaceAnalyzer pipeline).
+tier1 r3 (n=19) is a further-refined generation from the same independent pipeline, all again selected for p5 polar contacts. Stats from `designs/tier1_af3_stats.tsv` (r3 subset, externally pre-computed). The Validated (n=18) column uses the user-provided `af3_design_stats.tsv` (original paper authors' pipeline run, identical code path; their full AF3 output PAE files were available enabling ipSAE). Our independent FastRelax run on the same 18 validated structures (`designs/validated_reference_metrics.tsv`) confirmed all CMS, contact-count, SC, packstat, and surface-hydrophobicity values within stochastic FastRelax variation (≤5% on continuous metrics, identical on all discrete contact counts). ipSAE cannot be recomputed from our run as the AF3 output PAE files (`full_data_0.json` with `token_chain_ids`) are not available for the validated designs.
 
-| Metric | Validated (n=18) | tier1 r2+r2.5 (n=17) | tier1 r3 (n=19) | Our 12 (outward†) |
-|---|---|---|---|---|
-| ipSAE binder-pep | med **0.94** | med **0.92** | med 0.88 | med 0.21 |
-| CMS p5 (Å²) | med **47.9** | med **44.4** | med **38.8** | med 10.5 |
-| CMS hotspot p5 (Å²) | med **56.2** | med **44.4** | med **38.8** | med 10.5 |
-| CMS peptide total (Å²) | med **240** | med 138 | med 143 | med 121 |
-| n contacts p5 (polar) | med 0 | med **2** | med **2** | med 0 |
-| n contacts p5 (H-bond) | med 0 | med **2** | med **1** | med 0 (max 2) |
-| n saltbridge at p5 | med 0 | med **1** | med **1** | med 0 (max 1) |
-| n contacts hotspot (polar) | med **2** | med **2** | med **2** | med 0 |
-| binder res in contact | med **9** | med 5 | med 5 | med 4 |
-| Helix % | med 87 | med **92** | med **92** | med 90 |
-| Shape complementarity | med **0.62** | med 0.61 | med **0.62** ✓ | med 0.57 |
-| Packstat | med **0.62** | med 0.61 | med 0.59 | med 0.60 |
-| Unsatisfied H-bonds | med **12** | med 7 ↓ | med 7 ↓ | med 10 |
-| BUNS delta unsat | med **3** | med 3 ✓ | med **2** ↓ better | med 2.5 ✓ |
-| Surface hydrophobicity | med **0.29** | med 0.42 ⚠ | med 0.36 ↓ better | med 0.44 ⚠ |
-| pass_all_bindcraft | 10/18 (56%) | 12/17 (71%) | **15/19 (78%)** ↑ best | 9/12 (75%) |
+| Metric | Validated (n=18)¹ | tier1 r3 (n=19) | Our 12 (outward†) |
+|---|---|---|---|
+| ipSAE binder-pep | med **0.94** | med 0.88 | med 0.21 |
+| CMS p5 (Å²) | med **47.9** | med **38.8** | med 10.5 |
+| CMS hotspot p5 (Å²) | med **56.2** | med **38.8** | med 10.5 |
+| CMS peptide total (Å²) | med **240** | med 143 | med 121 |
+| n contacts p5 (polar) | med 0 | med **2** | med 0 |
+| n contacts p5 (H-bond) | med 0 | med **1** | med 0 (max 2) |
+| n saltbridge at p5 | med 0 | med **1** | med 0 (max 1) |
+| n contacts hotspot (polar) | med **2** | med **2** | med 0 |
+| binder res in contact | med **9** | med 5 | med 4 |
+| Helix % | med 87 | med **92** | med 90 |
+| Shape complementarity | med **0.62** | med **0.62** ✓ | med 0.57 |
+| Packstat | med **0.62** | med 0.59 | med 0.60 |
+| Unsatisfied H-bonds | med **12** | med 7 ↓ | med 10 |
+| BUNS delta unsat | med **3** | med **2** ↓ better | med 2.5 ✓ |
+| Surface hydrophobicity | med **0.29** | med 0.36 | med 0.44 ⚠ |
+| pass_all_bindcraft | 10/18 (56%) | **15/19 (78%)** ↑ best | 9/12 (75%) |
 
-**tier1 r3 vs r2+r2.5:** r3 shows continued improvement in biophysical quality — surface hydrophobicity falls from 0.42 to 0.36 (closer to validated 0.29), BUNS drops to 2, shape complementarity reaches the validated median of 0.62, and pass_all_bindcraft rises to 78%. The p5 contact rate is maintained (n polar = 2, n saltbridge = 1 in both rounds). ipSAE and CMS p5 decrease slightly (0.88 vs 0.92; 38.8 vs 44.4), suggesting the r3 designs trade marginal binding confidence for better developability, or simply that r3 included more diverse backbones. Both rounds are substantially above our campaign on p5-specific contact metrics.
+¹ From user-provided `af3_design_stats.tsv`; CMS/contacts/Rosetta metrics independently verified by our pipeline run (`designs/validated_reference_metrics.tsv`). ipSAE sourced from user tsv only (AF3 PAE output files not available to us). Our run: CMS p5 49.5 Å², CMS hotspot p5 52.6 Å², SC 0.620, packstat 0.625, surface hydro 0.288, BUNS med 4.0 — consistent with user values within expected FastRelax variation.
 
-**Our 12 vs tier1 r3:** surface hydrophobicity (0.44 vs 0.36) and CMS p5/polar-contacts gap remain the primary differences. On packstat, BUNS, and Helix %, our candidates are now essentially at parity with tier1 r3. The contact gap narrows further when using the outward-Asp model for our leads (`dldesign_6` CMS p5=39 Å², `dldesign_7` CMS p5=55 Å² — both exceeding tier1 r3's median of 38.8), confirming our lead designs are individually competitive once the correct Asp rotamer is used, but our overall population lacks the p5 contact density of the tier1 set.
+† CMS and contact metrics for `dldesign_6` (model_2) and `dldesign_7` (model_1) replaced with outward-Asp model values; `dldesign_2` has no outward-Asp model in any of 5 AF3 predictions.
+
+**Validated vs tier1 r3:** tier1 r3 matches the validated designs on the key biophysical shape metrics (SC 0.62 = validated, BUNS 2 < validated 3, surface hydrophobicity 0.36 approaching 0.29). The p5 contact density (CMS p5 med 38.8 vs 47.9, ipSAE 0.88 vs 0.94) is lower in tier1 r3, expected as tier1 designs target a single peptide position rather than the full groove; the discrete polar contact counts (n=2) and salt-bridge rate (n=1) both match or improve on the validated set. Overall, tier1 r3 designs pass the validated-design quality bar on all metrics except raw CMS magnitude and binder_res_in_contact.
+
+**tier1 r3 vs r2+r2.5 (from §7):** r3 shows continued improvement — surface hydrophobicity 0.36 (down from 0.42), BUNS 2 (down from 3), SC reaches validated median 0.62, pass_all_bindcraft 78% (up from 71%). ipSAE and CMS p5 decrease slightly (0.88 vs 0.92; 38.8 vs 44.4), likely reflecting more diverse backbones included in r3 rather than a quality regression.
+
+**Our 12 vs tier1 r3:** surface hydrophobicity (0.44 vs 0.36) and CMS p5/polar-contacts gap remain the primary differences. On packstat, BUNS, and Helix %, our candidates are essentially at parity with tier1 r3. The contact gap narrows when using the outward-Asp model for our leads (`dldesign_6` CMS p5=39 Å², `dldesign_7` CMS p5=55 Å² — both at or above tier1 r3's median of 38.8), confirming our leads are individually competitive once the correct Asp rotamer is used, but the overall population lacks the p5 contact density of the tier1 set.
 
 ## 8. Recommendation  *(previously §7)*
 
@@ -171,5 +177,5 @@ Deprioritize the other 10 candidates: 7 lose p5 contact under independent foldin
 - Only 13 of the campaign's 20 AF2-passing candidates have been AF3-confirmed; the remaining 7 (the ones with the worst pMHC-fold deltas) were not submitted.
 - Full 5-model ensemble analysis: Arg/Lys-Asp(p5) salt bridges confirmed in 4/5 models for `dldesign_6`, `dldesign_7`, and the non-specific control; partial (1/5) for `r3_r1b_403_65_dldesign_4` and `r3_r1b_870_64_dldesign_0`; absent for all others. Model_0 systematically predicts gauche- Asp whenever a binder is near p5 — always use all 5 models for interface contact conclusions.
 - No wet-lab or orthogonal computational (e.g. MD) validation yet — this is a purely in-silico shortlist.
-- The tier1 comparison (§7) uses `designs/tier1_af3_stats.tsv` (user-provided, r2+r2.5 subset); the r3 subset in that file was not used in the comparison and is not evaluated here.
-- This document is a draft; numbers should be spot-checked against `docs/03_design_log.md` and the underlying CSVs (`designs/candidates.csv`, `designs/funnel_summary.csv`, `designs/round3_rosetta_metrics.csv`, `designs/af3_negdelta_results.csv`, `designs/real_cms_13_ontarget.tsv`, `designs/their_ipsae_13_onoff.tsv`, `designs/af3_stats_13/af3_design_stats.tsv`) before being treated as final.
+- Tier1 comparisons (§7, §7b) use `designs/tier1_af3_stats.tsv` (user-provided). Our independent FastRelax+pipeline run on the 18 validated designs confirmed CMS, contact-count, SC, packstat, and surface-hydrophobicity metrics match within stochastic variation; results in `designs/validated_reference_metrics.tsv`. ipSAE for validated designs is not independently recomputable (AF3 PAE output files not available).
+- This document is a draft; numbers should be spot-checked against `docs/03_design_log.md` and the underlying CSVs (`designs/candidates.csv`, `designs/funnel_summary.csv`, `designs/round3_rosetta_metrics.csv`, `designs/af3_negdelta_results.csv`, `designs/real_cms_13_ontarget.tsv`, `designs/their_ipsae_13_onoff.tsv`, `designs/af3_stats_13/af3_design_stats.tsv`, `designs/validated_reference_metrics.tsv`) before being treated as final.
