@@ -93,7 +93,45 @@ Drawn from the 12 best pMHC-fold on/off deltas among the 20 total AF2-passing ca
 - **Net charge**: `dldesign_2` (-6) and `dldesign_6` (-9) are typical (validated range -3 to -11, median -7). **`dldesign_7` (-1) is an outlier** — every validated design is at least -3 net-negative; this breaks the project's net-negative-charge rule despite being a highly-charged (K/E-rich) sequence, and is worth a solubility/stability sanity check before prioritizing it over `_2`/`_6`.
 - **Structure** (Rosetta): all three sit within the validated envelope on every metric (sc, packstat, buns, n_int_res, cms_p5), but ddG (-44 to -53) is on the **weaker end** of the validated range (-57 to -88, median -70) — closer to the weakest validated hit (`phox2b-11`, -56.7) than the median.
 
-## 7. Recommendation
+## 7. Comparison with an independent pipeline (tier1 r2+r2.5)
+
+**Data source:** `designs/tier1_af3_stats.tsv`, r2+r2.5 subset (n=17). Independent designs by the user's own pipeline targeting the same 9UV8 pMHC; all 17 were selected to have polar interactions with p5 (15 have direct Asp side-chain contacts, 2 have backbone-only contacts at p5 — the same situation as our `dldesign_2`). Computed with the same `af3_design_stats.py` script and same FastRelax+InterfaceAnalyzer pipeline.
+
+| Metric | Validated (n=18) | tier1 r2+r2.5 (n=17) | Our 12¹ (Asp inward, m0) | Our 12¹ (Asp outward†) |
+|---|---|---|---|---|
+| ipSAE binder-pep | 0.86-0.97 (med **0.94**) | 0.85-0.94 (med **0.92**) | 0.00-0.94 (med 0.21) | 0.00-0.94 (med 0.21) |
+| CMS p5 (Å²) | 10.7-89.7 (med **47.9**) | 26.7-57.0 (med **44.4**) ✓ | 0-28.5 (med 5.9) | 0-54.9 (med **10.5**) ←improved |
+| CMS hotspot p5 (Å²) | 35.8-79.4 (med **56.2**) | 26.7-57.0 (med **44.4**) ✓ | 0-28.5 (med 5.9) | 0-54.9 (med **10.5**) |
+| CMS peptide total (Å²) | 174-270 (med **240**) | 95-203 (med 138) | 16-199 (med 96) | 16-199 (med 121) |
+| n contacts p5 (all) | med 3 | med **3** ✓ | med 0 | med 0 |
+| n contacts p5 (polar) | med 0 | med **2** ✓ | med 0 | med 0 |
+| n contacts p5 (H-bond) | med 0 | med **2** (max 6) ✓ | med 0 | med 0 (max 2) |
+| n saltbridge at p5 | med 0 | med **1** ✓ | med 0 | med 0 |
+| n contacts hotspot (polar) | 1-4 (med **2**) | 1-3 (med **2**) ✓ | 0-2 (med 0) | 0-2 (med 0) |
+| binder res in contact | 7-11 (med **9**) | 3-8 (med 5) | 0-7 (med 4) | 0-7 (med 4) |
+| Helix % | med 87 | med **92** | med 90 | med 90 |
+| Shape complementarity | 0.51-0.71 (med **0.62**) | 0.54-0.65 (med **0.61**) ✓ | 0.36-0.65 (med 0.57) | 0.36-0.65 (med 0.57) |
+| Packstat | 0.59-0.72 (med **0.62**) | 0.53-0.65 (med **0.61**) ✓ | 0.55-0.68 (med 0.60) | 0.55-0.68 (med 0.60) |
+| Unsatisfied H-bonds (IA) | 5-23 (med **12**) | 2-13 (med **7**) better | 2-15 (med 10) | 2-15 (med 10) |
+| BUNS delta unsat | 0-8 (med **3**) | 1-4 (med **3**) ✓ | 0-7 (med 2.5) ✓ | 0-7 (med 2.5) ✓ |
+| Surface hydrophobicity | 0.19-0.53 (med **0.29**) | 0.21-0.60 (med 0.42) ⚠ | 0.23-0.64 (med 0.44) ⚠ | 0.23-0.64 (med 0.44) ⚠ |
+| pass_all_bindcraft | 10/18 (56%) | 12/17 **(71%)** ✓ | 9/12 (75%) ✓ | 9/12 (75%) ✓ |
+
+¹ Excludes the `r3_r1b_273_28_dldesign_0` control. † CMS and contact metrics for `dldesign_6` (model_2, pep_iptm=0.79) and `dldesign_7` (model_1, pep_iptm=0.73) replaced with the outward-Asp model values; `dldesign_2` has no outward-Asp model in any of 5 AF3 predictions.
+
+**Key takeaways from the comparison:**
+
+1. **tier1 matches the validated-design profile on the most important specificity metrics** (CMS p5 median 44 vs validated 48, ipSAE median 0.92 vs 0.94, n polar contacts median 2 matching validated, n saltbridge median 1) — because every tier1 design was explicitly filtered to have p5 polar contacts. Biophysical quality (SC, packstat, BUNS) is also at or above validated levels.
+
+2. **Our 12 candidates lag on p5 contact density.** The overall-population medians for CMS p5 (5.9 inward, 10.5 outward) and polar/H-bond counts (0 in both orientations) are well below tier1 because our population is dominated by 7 zero-contact candidates. Our three leads individually reach tier1 levels on CMS p5 when using the outward-Asp model (`dldesign_6` 39 Å², `dldesign_7` 55 Å²) — but the ensemble H-bond count (max 2 vs tier1 max 6) still falls short.
+
+3. **Both pipelines share the surface hydrophobicity gap** (both ~0.42-0.44 vs validated 0.29). This is likely a shared property of helical miniproteins targeting the pMHC groove rather than a design-specific failure, but it is a developability concern worth tracking.
+
+4. **tier1's lower binder_res_in_contact** (median 5 vs validated 9) is consistent with our leads (median 4) — small α-helical miniproteins designed against a single peptide make fewer total interface contacts than the larger validated hits. Interface focus on p5 rather than breadth appears to be the shared characteristic.
+
+5. **Implication for a future round:** an explicit filter for p5 polar contacts (as applied in tier1 selection) is the clearest path to closing the gap with both tier1 and the validated designs. Our leads `dldesign_6` and `dldesign_7` demonstrate the mechanism is achievable (Arg47 salt bridge confirmed in 4/5 AF3 models), but it needs to be enforced as a selection criterion from the start of the design cycle rather than discovered retrospectively.
+
+## 8. Recommendation  *(previously §7)*
 
 **`r3_r1b_870_87_dldesign_6` is the primary lead** and **`r3_r1b_870_87_dldesign_7` is the co-lead**, both confirmed by the full 5-model AF3 ensemble analysis. Both have Arg47 making a direct salt bridge to Asp(p5):OD2 in 4/5 AF3 models at genuine H-bond/salt-bridge distances (2.09-2.88Å), confirming the intended G12D-specific recognition mechanism. `dldesign_6` additionally has the best absolute confidence metrics (AF2 pae=4.29, AF3 iptm/pep-iptm=0.93/0.77, AF3 ipSAE=0.510 within validated range); `dldesign_7` additionally engages Arg51 in two models, providing a bidentate Arg-Asp contact, though its near-neutral net charge (-1) warrants a solubility/stability check before synthesis.
 
@@ -101,9 +139,10 @@ Drawn from the 12 best pMHC-fold on/off deltas among the 20 total AF2-passing ca
 
 Deprioritize the other 10 candidates: 7 lose p5 contact under independent folding (triple-confirmed by real CMS, their-ipSAE, and AF3 ipSAE=0.000), 2 (`r1b_403_dldesign_2`, `r3_r1b_403_65_dldesign_4`) are strong but non-specific binders, and 1 (`dldesign_2`) lacks carboxylate-specific contact.
 
-## 8. Open items / caveats
+## 9. Open items / caveats
 
 - Only 13 of the campaign's 20 AF2-passing candidates have been AF3-confirmed; the remaining 7 (the ones with the worst pMHC-fold deltas) were not submitted.
 - Full 5-model ensemble analysis: Arg/Lys-Asp(p5) salt bridges confirmed in 4/5 models for `dldesign_6`, `dldesign_7`, and the non-specific control; partial (1/5) for `r3_r1b_403_65_dldesign_4` and `r3_r1b_870_64_dldesign_0`; absent for all others. Model_0 systematically predicts gauche- Asp whenever a binder is near p5 — always use all 5 models for interface contact conclusions.
 - No wet-lab or orthogonal computational (e.g. MD) validation yet — this is a purely in-silico shortlist.
-- This document is a draft; numbers should be spot-checked against `docs/03_design_log.md` and the underlying CSVs (`designs/candidates.csv`, `designs/funnel_summary.csv`, `designs/round3_rosetta_metrics.csv`, `designs/af3_negdelta_results.csv`, `designs/real_cms_13_ontarget.tsv`, `designs/their_ipsae_13_onoff.tsv`) before being treated as final.
+- The tier1 comparison (§7) uses `designs/tier1_af3_stats.tsv` (user-provided, r2+r2.5 subset); the r3 subset in that file was not used in the comparison and is not evaluated here.
+- This document is a draft; numbers should be spot-checked against `docs/03_design_log.md` and the underlying CSVs (`designs/candidates.csv`, `designs/funnel_summary.csv`, `designs/round3_rosetta_metrics.csv`, `designs/af3_negdelta_results.csv`, `designs/real_cms_13_ontarget.tsv`, `designs/their_ipsae_13_onoff.tsv`, `designs/af3_stats_13/af3_design_stats.tsv`) before being treated as final.
