@@ -131,6 +131,33 @@ Drawn from the 12 best pMHC-fold on/off deltas among the 20 total AF2-passing ca
 
 5. **Implication for a future round:** an explicit filter for p5 polar contacts (as applied in tier1 selection) is the clearest path to closing the gap with both tier1 and the validated designs. Our leads `dldesign_6` and `dldesign_7` demonstrate the mechanism is achievable (Arg47 salt bridge confirmed in 4/5 AF3 models), but it needs to be enforced as a selection criterion from the start of the design cycle rather than discovered retrospectively.
 
+### §7b. tier1 r3 vs our candidates
+
+tier1 r3 (n=19) is a further-refined generation from the same independent pipeline, all again selected for p5 polar contacts. Stats from `designs/tier1_af3_stats.tsv` (r3 subset, pre-computed externally with same FastRelax+InterfaceAnalyzer pipeline).
+
+| Metric | Validated (n=18) | tier1 r2+r2.5 (n=17) | tier1 r3 (n=19) | Our 12 (outward†) |
+|---|---|---|---|---|
+| ipSAE binder-pep | med **0.94** | med **0.92** | med 0.88 | med 0.21 |
+| CMS p5 (Å²) | med **47.9** | med **44.4** | med **38.8** | med 10.5 |
+| CMS hotspot p5 (Å²) | med **56.2** | med **44.4** | med **38.8** | med 10.5 |
+| CMS peptide total (Å²) | med **240** | med 138 | med 143 | med 121 |
+| n contacts p5 (polar) | med 0 | med **2** | med **2** | med 0 |
+| n contacts p5 (H-bond) | med 0 | med **2** | med **1** | med 0 (max 2) |
+| n saltbridge at p5 | med 0 | med **1** | med **1** | med 0 (max 1) |
+| n contacts hotspot (polar) | med **2** | med **2** | med **2** | med 0 |
+| binder res in contact | med **9** | med 5 | med 5 | med 4 |
+| Helix % | med 87 | med **92** | med **92** | med 90 |
+| Shape complementarity | med **0.62** | med 0.61 | med **0.62** ✓ | med 0.57 |
+| Packstat | med **0.62** | med 0.61 | med 0.59 | med 0.60 |
+| Unsatisfied H-bonds | med **12** | med 7 ↓ | med 7 ↓ | med 10 |
+| BUNS delta unsat | med **3** | med 3 ✓ | med **2** ↓ better | med 2.5 ✓ |
+| Surface hydrophobicity | med **0.29** | med 0.42 ⚠ | med 0.36 ↓ better | med 0.44 ⚠ |
+| pass_all_bindcraft | 10/18 (56%) | 12/17 (71%) | **15/19 (78%)** ↑ best | 9/12 (75%) |
+
+**tier1 r3 vs r2+r2.5:** r3 shows continued improvement in biophysical quality — surface hydrophobicity falls from 0.42 to 0.36 (closer to validated 0.29), BUNS drops to 2, shape complementarity reaches the validated median of 0.62, and pass_all_bindcraft rises to 78%. The p5 contact rate is maintained (n polar = 2, n saltbridge = 1 in both rounds). ipSAE and CMS p5 decrease slightly (0.88 vs 0.92; 38.8 vs 44.4), suggesting the r3 designs trade marginal binding confidence for better developability, or simply that r3 included more diverse backbones. Both rounds are substantially above our campaign on p5-specific contact metrics.
+
+**Our 12 vs tier1 r3:** surface hydrophobicity (0.44 vs 0.36) and CMS p5/polar-contacts gap remain the primary differences. On packstat, BUNS, and Helix %, our candidates are now essentially at parity with tier1 r3. The contact gap narrows further when using the outward-Asp model for our leads (`dldesign_6` CMS p5=39 Å², `dldesign_7` CMS p5=55 Å² — both exceeding tier1 r3's median of 38.8), confirming our lead designs are individually competitive once the correct Asp rotamer is used, but our overall population lacks the p5 contact density of the tier1 set.
+
 ## 8. Recommendation  *(previously §7)*
 
 **`r3_r1b_870_87_dldesign_6` is the primary lead** and **`r3_r1b_870_87_dldesign_7` is the co-lead**, both confirmed by the full 5-model AF3 ensemble analysis. Both have Arg47 making a direct salt bridge to Asp(p5):OD2 in 4/5 AF3 models at genuine H-bond/salt-bridge distances (2.09-2.88Å), confirming the intended G12D-specific recognition mechanism. `dldesign_6` additionally has the best absolute confidence metrics (AF2 pae=4.29, AF3 iptm/pep-iptm=0.93/0.77, AF3 ipSAE=0.510 within validated range); `dldesign_7` additionally engages Arg51 in two models, providing a bidentate Arg-Asp contact, though its near-neutral net charge (-1) warrants a solubility/stability check before synthesis.
