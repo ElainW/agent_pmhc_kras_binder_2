@@ -1,0 +1,15 @@
+round,seed,stage,n_in,n_out,pass_rate,gate,notes
+r1,de novo (full),RFdiffusion backbones,,1300,,,300 full de novo + 1000 full de novo
+r1,de novo (full),ProteinMPNN sequences,~1300 backbones,5×1 + 4×8 = 37 seqs,,,r1_184: 1 seq (FastRelax pipeline); r1b_273/401/403/870: 8 seqs each
+r1,de novo (full),AF2 initial-guess (binding),37,5,14%,pae_interaction < 10,"r1_184, r1b_273_5, r1b_401_7, r1b_403_2, r1b_870_2"
+r2,"r1 top-5 (partial diffusion, flat T=18)",RFdiffusion backbones (partial),5 seeds,1000,,,200 variants per seed
+r2,"r1 top-5 (partial diffusion, flat T=18)",ProteinMPNN → ESMFold → AF2,1000,0,0%,pae_interaction < 10,All biased top-N samples failed; cross-backbone spec-score ranking excluded real binders
+r3,"r1 top-5 (partial diffusion, graduated T=12-25)",RFdiffusion backbones (partial),5 seeds,1000,,,200 variants per seed; T scaled by seed AF2 quality
+r3,"r1 top-5 (partial diffusion, graduated T=12-25)",ProteinMPNN sequences,1000,8000,,,8 seqs per backbone
+r3,"r1 top-5 (partial diffusion, graduated T=12-25)",ESMFold (pLDDT + CA-RMSD gate),8000,994,99.4% backbones,pLDDT ≥ 80; CA-RMSD ≤ 2.0 Å,Best-pLDDT sequence per backbone selected; 994/1000 backbones had a passing winner
+r3,"r1 top-5 (partial diffusion, graduated T=12-25)",ProteinMPNN spec-scan (mpnn_spec_score),994,994,100%,rank within backbone only; no cross-backbone gate,Used for within-backbone sequence ranking only — never for backbone selection
+r3,"r1 top-5 (partial diffusion, graduated T=12-25)",AF2 initial-guess (unbiased full-funnel),994,8,0.8%,pae_interaction < 10,Breakthrough: 8 genuine binders invisible to prior biased top-N sampling
+r3,"r1 top-5 (partial diffusion, graduated T=12-25)",All 8 seqs per 8 passing backbones (AF2),64,15,23%,pae_interaction < 10,New campaign-best r3_r1b_870_87_dldesign_6 (pae=4.29) found; 3 backbones had 3/8 pass
+post-AF2,r1+r3 combined (20 candidates),pMHC-fold on/off-target delta screen,20,13,65% negative delta,pmhcfold_delta < 0 (correct specificity direction),12 negative-delta + 1 r1b_273_28 control; 8 excluded (wrong-direction)
+post-AF2,r1+r3 combined (20 candidates),AF3 Server on/off-target (13 candidates submitted),13,1,8% (iptm≥0.90 AND pep-iptm≥0.77 AND correct direction),af3_iptm ≥ 0.90; af3_binder_pep_iptm ≥ 0.77; delta > 0,r3_r1b_870_87_dldesign_6 is the sole strict passer; 3 pass absolute gates but zero specificity discrimination
+post-AF2,r1+r3 combined (20 candidates),Rosetta InterfaceAnalyzer (AF3-relaxed structures),13,3,23% (r1b_870_87 lineage),ddG < -40 AND real_cms_p5 > 10 (within validated range),r1b_870_87 dldesign_2/6/7 all within validated envelope; others fail ddG or cms

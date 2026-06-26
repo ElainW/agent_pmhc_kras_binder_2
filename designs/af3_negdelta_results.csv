@@ -1,0 +1,14 @@
+candidate,on_iptm,on_binder_pep_iptm,off_iptm,off_binder_pep_iptm,delta_iptm,delta_binder_pep_iptm,passes_af3_gates_ontarget
+r1b_273_dldesign_5,0.76,0.10,0.76,0.09,0.00,0.01,N
+r1b_401_dldesign_7,0.77,0.12,0.81,0.33,-0.04,-0.21,N
+r1b_403_dldesign_2,0.95,0.86,0.95,0.87,0.00,-0.01,Y_but_no_discrimination
+r1b_870_dldesign_2,0.77,0.13,0.94,0.83,-0.17,-0.70,N
+r3_r1b_273_28_dldesign_0_CONTROL,0.93,0.79,0.93,0.82,0.00,-0.03,Y_but_wrong_direction
+r3_r1b_403_65_dldesign_4,0.95,0.83,0.95,0.85,0.00,-0.02,Y_but_no_discrimination
+r3_r1b_403_6_dldesign_6,0.76,0.14,0.76,0.14,0.00,0.00,N
+r3_r1b_870_22_dldesign_0,0.76,0.10,0.76,0.09,0.00,0.01,N
+r3_r1b_870_22_dldesign_7,0.74,0.07,0.75,0.08,-0.01,-0.01,N
+r3_r1b_870_64_dldesign_0,0.85,0.51,0.83,0.44,0.02,0.07,N
+r3_r1b_870_87_dldesign_2,0.90,0.73,0.89,0.64,0.01,0.09,N
+r3_r1b_870_87_dldesign_6,0.93,0.77,0.91,0.74,0.02,0.03,Y_correct_direction
+r3_r1b_870_87_dldesign_7,0.91,0.72,0.91,0.76,0.00,-0.04,N
