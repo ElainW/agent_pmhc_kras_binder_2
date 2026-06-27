@@ -1,3 +1,4 @@
 outputs/
 scripts/__pycache__/
 .ipynb_checkpoints/
+final_designs/candidates_with_sequences.csv
