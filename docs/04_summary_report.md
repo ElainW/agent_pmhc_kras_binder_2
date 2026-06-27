@@ -24,7 +24,7 @@ Pipeline: **RFdiffusion** (backbone generation, peptide-only hotspot conditionin
 
 ### Round 2 — Partial diffusion (flat `partial_T=18`, 1000 backbones)
 
-Seeded from round 1's 5 AF2-passing backbones (200 variants/seed) → contact filter `05_contact_filter.py` (998 scored, 499 pass) + geometric filter `05b_min_distance_filter.py` (1000 tested, 275 pass; cutoff: min backbone heavy-atom distance binder→p5 ≤ 5.0 Å on the raw poly-Gly backbone) → ProteinMPNN spec scan `08_mpnn_specificity.py` on all passing backbones (~1,003 sequences, 1 per backbone) → **top-N backbone selection by `mpnn_spec_score`** (top-21, top-15, random-8 tested as separate subsets) → ProteinMPNN sequence generation + ESMFold (top-21: 168 seqs; top-15: 120 seqs; random-8: 64 seqs) → AF2 initial-guess complex on each subset → **0 passed pae<10** across all subsets.
+Seeded from round 1's 5 AF2-passing backbones (200 variants/seed) → contact filter `05_contact_filter.py` (998 scored, 499 pass) → geometric filter `05b_min_distance_filter.py` (min backbone heavy-atom distance binder→p5 on raw poly-Gly; initial 5.0 Å gate applied then **dropped** after calibrating against validated designs, which span 3.0–9.2 Å — the full backbone population 3.74–8.80 Å already sits within that range) → ProteinMPNN spec scan `08_mpnn_specificity.py` on **all 1,000 backbones** (~1,003 sequences, 1 per backbone) → **top-N backbone selection by `mpnn_spec_score`** (top-21, top-15, random-8 tested as separate subsets) → ProteinMPNN sequence generation + ESMFold (top-21: 168 seqs; top-15: 120 seqs; random-8: 64 seqs) → AF2 initial-guess complex on each subset → **0 passed pae<10** across all subsets.
 
 **Round 2 outcome:** 0% AF2 pass — entirely a sampling artifact from spec-score-biased backbone selection (see methodological finding below). `partial_T=18` retrospectively shown not to impair binding.
 
@@ -38,7 +38,7 @@ Seeded from round 1's 5 AF2-passing backbones (200 variants/seed) → contact fi
 
 ### Round 3b — Unbiased full-funnel (994 backbones → AF2)
 
-Same 1000 round-3 backbones → ProteinMPNN (8 seqs/backbone = **8,000 sequences**) → ESMFold (pLDDT≥80 AND CA-RMSD≤2.0 Å: 6,971/8,000 pass; best-pLDDT winner per backbone selected from 992 backbones) → geometric filter `05b_min_distance_filter.py` (min backbone heavy-atom distance binder→p5 ≤ 5.0 Å) → ProteinMPNN spec scan `08_mpnn_specificity.py` (**994 sequences scored**, within-backbone ranking only — not used for backbone selection) → AF2 initial-guess complex on all 994 (**8 pass** pae<10, 0.8%): `r3_r1b_273_1`, `r3_r1b_273_28`, `r3_r1b_403_65`, `r3_r1b_403_6`, `r3_r1b_870_22`, `r3_r1b_870_64`, `r3_r1b_870_87` lineages (2 from `r1b_273_28`).
+Same 1000 round-3 backbones → ProteinMPNN (8 seqs/backbone = **8,000 sequences**) → ESMFold (pLDDT≥80 AND CA-RMSD≤2.0 Å: 6,971/8,000 pass; best-pLDDT winner per backbone selected from 992 backbones) → geometric filter `05b_min_distance_filter.py` (min backbone heavy-atom distance binder→p5, no hard cutoff applied — distance gate dropped after round 2 calibration) → ProteinMPNN spec scan `08_mpnn_specificity.py` (**994 sequences scored**, within-backbone ranking only — not used for backbone selection) → AF2 initial-guess complex on all 994 (**8 pass** pae<10, 0.8%): `r3_r1b_273_1`, `r3_r1b_273_28`, `r3_r1b_403_65`, `r3_r1b_403_6`, `r3_r1b_870_22`, `r3_r1b_870_64`, `r3_r1b_870_87` lineages (2 from `r1b_273_28`).
 
 **Round 3b outcome:** Breakthrough — 8 genuine AF2-passing backbones invisible to every prior biased top-N strategy.
 
