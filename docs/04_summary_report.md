@@ -12,13 +12,51 @@ Pipeline: **RFdiffusion** (backbone generation, peptide-only hotspot conditionin
 
 ## 3. Round-by-round summary
 
-| Round | Approach | Backbones | Key result |
-|---|---|---|---|
-| 1 | Full de novo RFdiffusion (300+1000), peptide-only hotspots | ~1300 | 5 candidates with strong AF2 binding (`r1_184`, `r1b_273`, `r1b_401`, `r1b_403`, `r1b_870`) but poor specificity by `mpnn_spec_score` |
-| 2 | Partial diffusion (flat `partial_T=18`) seeded from round 1's 5 | 1000 | Best-ever specificity scores on spec-score-biased top-N samples; **0% AF2 pass on the tested subset** — but this was a sampling artifact, not a T=18 failure (see below) |
-| 3a | Partial diffusion (graduated `partial_T=12-25` by seed quality) | 1000 | Same negative result on biased top-N samples |
-| 3b | **Unbiased full-funnel test on all 1000 round-3 backbones** (8 seqs/backbone, ESMFold, spec-scan winners only, AF2 on all 994 survivors) | 1000 | **Breakthrough: 8 genuine AF2-passing candidates** with improved specificity, invisible to every biased top-N sampling strategy |
-| 3c | Tested all 7 remaining (untested) sequences for each of those 8 backbones | 56 new seqs | **New campaign-best**: `r3_r1b_870_87_dldesign_6` (pae=4.29); 13 unique AF2-passing sequences total across 8 backbones |
+### Round 1 — Full de novo RFdiffusion (~1300 backbones total)
+
+**First batch (r1, 300 backbones):** RFdiffusion full de novo, peptide-only hotspots (B184+B186+B187) → contact filter `05_contact_filter.py` (851 backbones scored, ~847 pass p5 contact gate) → ProteinMPNN (1 seq/backbone on selected backbones) → AF2 initial-guess complex (282 designs tested, **1 pass** pae<10): `r1_184_dldesign_0_cycle1` (pae=8.38).
+
+**Second batch (r1b, 1000 backbones):** RFdiffusion full de novo → contact filter (999 backbones scored, 499 pass) → ProteinMPNN (8 seqs/backbone for 934 backbones = **7,472 sequences**) → ESMFold monomer foldability filter (pLDDT≥80: 5,275/7,472 pass; best-pLDDT sequence selected per backbone) → AF2 initial-guess complex (**914 designs tested, 4 pass** pae<10, 0.4%): `r1b_273_dldesign_5`, `r1b_401_dldesign_7`, `r1b_403_dldesign_2`, `r1b_870_dldesign_2` → AF2 monomer on the 4 passing sequences (pLDDT 92.0–97.6, CA-RMSD 0.44–0.93 Å) → ProteinMPNN spec scan recheck on all 32 seqs for these 4 backbones (within-backbone ranking only).
+
+**Round 1 outcome:** 5 candidates with strong AF2 binding but poor specificity signal by `mpnn_spec_score` (within-backbone ranking only; cross-backbone use later shown to be invalid).
+
+---
+
+### Round 2 — Partial diffusion (flat `partial_T=18`, 1000 backbones)
+
+Seeded from round 1's 5 AF2-passing backbones (200 variants/seed) → contact filter `05_contact_filter.py` (998 scored, 499 pass) + geometric filter `05b_min_distance_filter.py` (1000 tested, 275 pass min binder–peptide distance gate) → ProteinMPNN spec scan `08_mpnn_specificity.py` on all passing backbones (~1,003 sequences, 1 per backbone) → **top-N backbone selection by `mpnn_spec_score`** (top-21, top-15, random-8 tested as separate subsets) → ProteinMPNN sequence generation + ESMFold (top-21: 168 seqs; top-15: 120 seqs; random-8: 64 seqs) → AF2 initial-guess complex on each subset → **0 passed pae<10** across all subsets.
+
+**Round 2 outcome:** 0% AF2 pass — entirely a sampling artifact from spec-score-biased backbone selection (see methodological finding below). `partial_T=18` retrospectively shown not to impair binding.
+
+---
+
+### Round 3a — Partial diffusion (graduated `partial_T=12–25`, biased top-N)
+
+1000 new backbones (graduated T by seed AF2 quality) → same spec-score-biased top-N selection strategy as round 2 → **0 AF2 passes** on the tested subset. Confirmed that biased selection is the common failure mode, not T or backbone quality.
+
+---
+
+### Round 3b — Unbiased full-funnel (994 backbones → AF2)
+
+Same 1000 round-3 backbones → ProteinMPNN (8 seqs/backbone = **8,000 sequences**) → ESMFold (pLDDT≥80 AND CA-RMSD≤2.0 Å: 6,971/8,000 pass; best-pLDDT winner per backbone selected from 992 backbones) → geometric filter `05b_min_distance_filter.py` (min binder–peptide distance gate) → ProteinMPNN spec scan `08_mpnn_specificity.py` (**994 sequences scored**, within-backbone ranking only — not used for backbone selection) → AF2 initial-guess complex on all 994 (**8 pass** pae<10, 0.8%): `r3_r1b_273_1`, `r3_r1b_273_28`, `r3_r1b_403_65`, `r3_r1b_403_6`, `r3_r1b_870_22`, `r3_r1b_870_64`, `r3_r1b_870_87` lineages (2 from `r1b_273_28`).
+
+**Round 3b outcome:** Breakthrough — 8 genuine AF2-passing backbones invisible to every prior biased top-N strategy.
+
+---
+
+### Round 3c — Extended sequence testing + full specificity battery (20 AF2-passing candidates)
+
+**Extended AF2 testing:** 7 remaining ProteinMPNN sequences per each of 8 passing backbones (56 new seqs) → ESMFold pre-filter (160 seqs across all 8×8=64 tested) → AF2 initial-guess complex (64 designs tested, **15 pass** pae<10, 23%); combined with 3b's 8 passing seqs → **20 total AF2-passing candidates** (5 r1 + 15 r3 across 8 backbones).
+
+**Specificity screens:**
+1. **pMHC-fold on/off-target** `10_run_pmhc_fold_3chain.py` — 3-chain AF2-finetuned-MHC fold (G12D vs WT 8I5E); Δ(PAE on − off) gate: 20 candidates → **13 negative Δ** (correct direction) + 1 `r1b_273_28` control (selected for deliberate non-specificity).
+2. **AF3 Server on/off-target** — 13 submitted (12 + 1 control); no-MSA for binder, real MSA for MHC, no structure template; iptm ≥ 0.90 AND binder–pep iptm ≥ 0.77 AND Δ > 0 gate: **1 strict pass** (`r3_r1b_870_87_dldesign_6`); 5 further pass absolute AF3 binding gate without on/off discrimination.
+3. **Rosetta InterfaceAnalyzer** post-FastRelax (3-repeat constrained, DAlphaBall BUNS) on all 13 AF3 structures: ddG, shape complementarity, packstat, buried-unsat, real PyRosetta `ContactMolecularSurface` per peptide position.
+4. **ipSAE** (their pipeline `calc_ipsae.py`) on all 13 on-target and 13 off-target AF3 structures.
+5. **5-model AF3 ensemble analysis** `14_batch_find_basic_to_asp.py` — Arg/Lys/His↔Asp(p5) salt-bridge/H-bond distances across all 5 AF3 models; p5 Asp rotamer (gauche−/trans) classified per model.
+6. **p5 contact pose-bias diagnostic** `12_check_p5_contact.py` — min binder-to-p5 distance: designed pose vs untemplated AF3 refold.
+
+**Round 3c outcome:** `r3_r1b_870_87_dldesign_6` (pae=4.29, AF3 iptm/pep-iptm=0.93/0.77, ipSAE=0.896, Arg47↔Asp(p5):OD2 salt bridge in 4/5 AF3 models) and `dldesign_7` as co-lead; 13 new AF2-passing candidates total in round 3.
 
 **Key methodological finding — `mpnn_spec_score` is not a valid backbone-ranking metric** (confirmed by the paper's author, then validated empirically in two independent ways):
 
