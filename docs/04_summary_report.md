@@ -14,7 +14,7 @@ Pipeline: **RFdiffusion** (backbone generation, peptide-only hotspot conditionin
 
 ### Round 1 — Full de novo RFdiffusion (~1300 backbones total)
 
-**First batch (r1, 300 backbones):** RFdiffusion full de novo, peptide-only hotspots (B184+B186+B187) → contact filter `05_contact_filter.py` (299 backbones scored, ~all pass p5 contact gate) → ProteinMPNN (1 seq/backbone on selected backbones) → AF2 initial-guess complex (282 designs tested, **1 pass** pae<10): `r1_184_dldesign_0_cycle1` (pae=8.38).
+**First batch (r1, 300 backbones):** RFdiffusion full de novo, peptide-only hotspots (B184+B186+B187) → contact filter `05_contact_filter.py` (299 backbones scored, ~all pass p5 contact gate) → ProteinMPNN (1 seq/backbone = 302 sequences; no intermediate filter) → AF2 initial-guess complex (282 designs tested, **1 pass** pae<10): `r1_184_dldesign_0_cycle1` (pae=8.38).
 
 **Second batch (r1b, 1000 backbones):** RFdiffusion full de novo → contact filter (999 backbones scored, 499 pass) → ProteinMPNN (8 seqs/backbone for 934 backbones = **7,472 sequences**) → ESMFold monomer foldability filter (pLDDT≥80: 5,275/7,472 pass; best-pLDDT sequence selected per backbone) → AF2 initial-guess complex (**914 designs tested, 4 pass** pae<10, 0.4%): `r1b_273_dldesign_5`, `r1b_401_dldesign_7`, `r1b_403_dldesign_2`, `r1b_870_dldesign_2` → AF2 monomer on the 4 passing sequences (pLDDT 92.0–97.6, CA-RMSD 0.44–0.93 Å) → ProteinMPNN spec scan recheck on all 32 seqs for these 4 backbones (within-backbone ranking only).
 
