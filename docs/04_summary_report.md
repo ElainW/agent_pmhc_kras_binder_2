@@ -49,7 +49,7 @@ Same 1000 round-3 backbones → ProteinMPNN (8 seqs/backbone = **8,000 sequences
 **Extended AF2 testing:** 7 remaining ProteinMPNN sequences per each of 8 passing backbones (56 new seqs) → ESMFold pre-filter (160 seqs across all 8×8=64 tested) → AF2 initial-guess complex (64 designs tested, **15 pass** pae<10, 23%); combined with 3b's 8 passing seqs → **20 total AF2-passing candidates** (5 r1 + 15 r3 across 8 backbones).
 
 **Specificity screens:**
-1. **pMHC-fold on/off-target** `10_run_pmhc_fold_3chain.py` — 3-chain AF2-finetuned-MHC fold (G12D vs WT 8I5E); Δ(PAE on − off) gate: 20 candidates → **13 negative Δ** (correct direction) + 1 `r1b_273_28` control (selected for deliberate non-specificity).
+1. **pMHC-fold on/off-target** `10_run_pmhc_fold_3chain.py` — 3-chain AF2-finetuned-MHC fold (G12D vs WT 8I5E); Δ(PAE on − off) gate: 20 candidates → **12 negative Δ** (correct direction) + 1 `r1b_273_28` control (selected for deliberate non-specificity).
 2. **AF3 Server on/off-target** — 13 submitted (12 + 1 control); no-MSA for binder, real MSA for MHC, no structure template; iptm ≥ 0.90 AND binder–pep iptm ≥ 0.77 AND Δ > 0 gate: **1 strict pass** (`r3_r1b_870_87_dldesign_6`); 5 further pass absolute AF3 binding gate without on/off discrimination.
 3. **Rosetta InterfaceAnalyzer** post-FastRelax (3-repeat constrained, DAlphaBall BUNS) on all 13 AF3 structures: ddG, shape complementarity, packstat, buried-unsat, real PyRosetta `ContactMolecularSurface` per peptide position.
 4. **ipSAE** (their pipeline `calc_ipsae.py`) on all 13 on-target and 13 off-target AF3 structures.
